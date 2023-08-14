@@ -64,13 +64,13 @@ impl SavefileManager {
         key_back: KeyState,
         key_close: KeyState,
     ) -> Result<Self, ErroredSavefileManagerInner> {
-        let label = format!("Savefiles (load with {})", key_load);
+        let label = format!("保存文件管理 (load with {})", key_load);
         let mut savefile_path = get_savefile_path().map_err(|e| {
-            ErroredSavefileManagerInner::new(format!("Could not find savefile path: {}", e))
+            ErroredSavefileManagerInner::new(format!("找不到存档路径: {}", e))
         })?;
 
         let dir_stack = DirStack::new(&savefile_path).map_err(|e| {
-            ErroredSavefileManagerInner::new(format!("Couldn't construct file browser: {}", e))
+            ErroredSavefileManagerInner::new(format!("无法创建文件浏览器: {}", e))
         })?;
 
         savefile_path.push("S0000.sl2");
@@ -97,25 +97,25 @@ impl SavefileManager {
             if src_path.is_file() {
                 self.log = match load_savefile(src_path, &self.savefile_path) {
                     Ok(()) => Some(format!(
-                        "Loaded {}/{}",
+                        "已加载 {}/{}",
                         if self.breadcrumbs == "/" { "" } else { &self.breadcrumbs },
                         src_path.file_name().unwrap().to_str().unwrap()
                     )),
-                    Err(e) => Some(format!("Error loading savefile: {}", e)),
+                    Err(e) => Some(format!("无法加载存档: {}", e)),
                 };
             }
         } else {
-            error!("No current path! Can't load savefile.");
+            error!("当前路径无效! 无法加载存档。");
         }
     }
 
     fn import_savefile(&mut self) {
         if self.savefile_name.is_empty() {
-            self.log = Some(String::from("Cannot save to empty filename"));
+            self.log = Some(String::from("无法保存到空文件名"));
             return;
         }
         if self.savefile_name.contains('/') || self.savefile_name.contains('\\') {
-            self.log = Some(String::from("Savefile name cannot contain path separator"));
+            self.log = Some(String::from("存档文件不能包含路径分隔符"));
             return;
         }
         let mut dst_path = PathBuf::from(self.dir_stack.path());
@@ -125,12 +125,12 @@ impl SavefileManager {
                 self.savefile_name.clear();
                 self.dir_stack.refresh();
                 Some(format!(
-                    "Imported {}/{}",
+                    "已导入 {}/{}",
                     if self.breadcrumbs == "/" { "" } else { &self.breadcrumbs },
                     dst_path.file_name().unwrap().to_str().unwrap()
                 ))
             },
-            Err(e) => Some(format!("Error importing savefile: {}", e)),
+            Err(e) => Some(format!("无法导入存档: {}", e)),
         };
     }
 }
@@ -180,7 +180,7 @@ impl Widget for SavefileManager {
             }
 
             ListBox::new(SFM_TAG).size([button_width, 200. * scale]).build(ui, || {
-                if ui.selectable_config(format!(".. Up one dir ({})", self.key_back)).build() {
+                if ui.selectable_config(format!(".. 上级目录 ({})", self.key_back)).build() {
                     self.dir_stack.exit();
                     self.breadcrumbs = self.dir_stack.breadcrumbs();
                     self.dir_stack.refresh();
@@ -204,7 +204,7 @@ impl Widget for SavefileManager {
                 }
             });
 
-            if ui.button_with_size(format!("Load savefile ({})", self.key_load), [
+            if ui.button_with_size(format!("加载存档 ({})", self.key_load), [
                 button_width,
                 BUTTON_HEIGHT,
             ]) {
@@ -221,24 +221,24 @@ impl Widget for SavefileManager {
 
             ui.same_line();
 
-            if ui.button_with_size("Import", [button_width * 58. / 240., BUTTON_HEIGHT]) {
+            if ui.button_with_size("导入", [button_width * 58. / 240., BUTTON_HEIGHT]) {
                 self.import_savefile();
             }
 
             ui.separator();
 
-            if ui.button_with_size("Show folder", [button_width, BUTTON_HEIGHT]) {
+            if ui.button_with_size("在系统浏览器中打开", [button_width, BUTTON_HEIGHT]) {
                 let path = self.dir_stack.path().to_owned();
                 let path = if path.is_file() { path.parent().unwrap() } else { &path };
 
                 if let Err(e) =
                     Command::new("explorer.exe").arg(OsStr::new(path.to_str().unwrap())).spawn()
                 {
-                    self.log = Some(format!("Couldn't show folder: {}", e));
+                    self.log = Some(format!("无法显示目录: {}", e));
                 };
             }
 
-            if ui.button_with_size(format!("Close ({})", self.key_close), [
+            if ui.button_with_size(format!("关闭 ({})", self.key_close), [
                 button_width,
                 BUTTON_HEIGHT,
             ]) || self.key_close.keyup(ui)
@@ -447,7 +447,7 @@ fn get_savefile_path() -> Result<PathBuf, String> {
         .find(|e| re.is_match(&e.file_name().to_string_lossy()) && e.path().is_dir())
         .map(|e| e.path())
         .map(PathBuf::from)
-        .ok_or_else(|| String::from("Couldn't find savefile path"))
+        .ok_or_else(|| String::from("找不到存档路径"))
 }
 
 fn load_savefile(src: &Path, dest: &Path) -> Result<(), std::io::Error> {
